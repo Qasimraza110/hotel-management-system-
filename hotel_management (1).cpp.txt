@@ -1,0 +1,442 @@
+#include <iostream>
+#include <string>
+
+using namespace std;
+
+// Constants for Room Status
+const int OCCUPIED = 0;
+const int BOOKED = 1;
+const int READY = 2;
+const int UNAVAILABLE = 3;
+
+// Constants for Room Types
+const int SINGLE = 0;
+const int DOUBLE = 1;
+const int SUITE = 2;
+
+// Room Node Class (for Doubly Linked List)
+class Room {
+public:
+    int id;
+    int type;
+    int status;
+    int floor;
+    string customerName;
+    string phoneno;
+    string cnic;
+    int nights;
+    Room* next;
+    Room* prev;
+
+    Room(int id, int type, int floor)
+        : id(id), type(type), floor(floor), status(READY), customerName(""), phoneno(""), cnic(""), nights(0), next(NULL), prev(NULL) {}
+};
+
+// Booking Request Class
+class BookingRequest {
+public:
+    int type;
+    string customerName;
+    string phoneno;
+    string cnic;
+    int nights;
+    int floor;
+    bool highPriority;
+
+    BookingRequest(int type, const string& customerName, string phoneno, string cnic, int nights, int floor, bool highPriority)
+        : type(type), customerName(customerName), phoneno(phoneno), cnic(cnic), nights(nights), floor(floor), highPriority(highPriority) {}
+};
+
+// Custom Queue Class
+class BookingQueue {
+private:
+    class Node {  
+    public:
+        BookingRequest data;
+        Node* next;
+
+        Node(BookingRequest data) : data(data), next(NULL) {}
+    };
+
+    Node* front;
+    Node* rear;
+
+public:
+    BookingQueue() : front(NULL), rear(NULL) {}
+
+    bool isEmpty() {
+        return front == NULL;
+    }
+
+    void enqueue(BookingRequest data) {
+        Node* newNode = new Node(data);
+        if (rear) {
+            rear->next = newNode;
+        } else {
+            front = newNode;
+        }
+        rear = newNode;
+    }
+
+    BookingRequest dequeue() {
+        if (isEmpty()) {
+            cout << "Queue is empty!";
+        }
+        Node* temp = front;
+        BookingRequest data = temp->data;
+        front = front->next;
+        if (!front) {
+            rear = NULL;
+        }
+        delete temp;
+        return data;
+    }
+
+    BookingRequest peek() {
+        if (isEmpty()) {
+            cout << "Queue is empty!";
+        }
+        return front->data;
+    }
+};
+
+
+// Custom Stack Class
+class BookingStack {
+private:
+    class Node { 
+    public:
+        Room* data;
+        Node* next;
+
+        Node(Room* data) : data(data), next(NULL) {}
+    };
+
+    Node* top;
+
+public:
+    BookingStack() : top(NULL) {}
+
+    bool isEmpty() {
+        return top == NULL;
+    }
+
+    void push(Room* data) {
+        Node* newNode = new Node(data);
+        newNode->next = top;
+        top = newNode;
+    }
+
+    Room* pop() {
+        if (isEmpty()) {
+            cout << "Stack is empty!";
+        }
+        Node* temp = top;
+        Room* data = temp->data;
+        top = top->next;
+        delete temp;
+        return data;
+    }
+
+    Room* peek() {
+        if (isEmpty()) {
+            cout << "Stack is empty!";
+        }
+        return top->data;
+    }
+
+    BookingStack clone() const {
+        BookingStack copy;
+        Node* temp = top;
+        while (temp) {
+            copy.push(temp->data);
+            temp = temp->next;
+        }
+        return copy;
+    }
+};
+
+
+// Tree Node Class (for Binary Search Tree)
+class TreeNode {
+public:
+    Room* room;
+    TreeNode* left;
+    TreeNode* right;
+
+    TreeNode(Room* room) : room(room), left(NULL), right(NULL) {}
+};
+
+// Hotel Management System
+class HotelManagement {
+private:
+    Room* head;
+    Room* tail;
+    TreeNode* root;
+    int totalRooms;
+    BookingQueue regularQueue;
+    BookingQueue priorityQueue;
+    BookingStack bookingHistory;
+
+    // Add room to the binary search tree
+    TreeNode* addRoomToTree(TreeNode* node, Room* room) {
+        if (!node) return new TreeNode(room);
+
+        if (room->id < node->room->id)
+            node->left = addRoomToTree(node->left, room);
+        else
+            node->right = addRoomToTree(node->right, room);
+
+        return node;
+    }
+
+    // In-order traversal of the binary search tree
+    void inOrderTraversal(TreeNode* node) {
+        if (!node) return;
+
+        inOrderTraversal(node->left);
+
+        Room* room = node->room;
+        cout << "Room ID: " << room->id
+             << ", Floor: " << room->floor
+             << ", Type: " << (room->type == SINGLE ? "SINGLE" : room->type == DOUBLE ? "DOUBLE" : "SUITE")
+             << ", Status: " << (room->status == READY ? "READY" : room->status == BOOKED ? "BOOKED" : room->status == OCCUPIED ? "OCCUPIED" : "UNAVAILABLE")
+             << endl;
+
+        inOrderTraversal(node->right);
+    }
+
+public:
+    HotelManagement(int floors, int roomsPerFloor) {
+        head = NULL;
+        tail = NULL;
+        root = NULL;
+        totalRooms = floors * roomsPerFloor;
+        int id = 1;
+
+        for (int floor = 1; floor <= floors; ++floor) {
+            for (int i = 1; i <= roomsPerFloor; ++i) {
+                int type = (i % 3 == 0) ? SUITE : ((i % 2 == 0) ? DOUBLE : SINGLE);
+                Room* room = new Room(id, type, floor);
+                addRoomToList(room);
+                root = addRoomToTree(root, room);
+                ++id;
+            }
+        }
+    }
+
+    ~HotelManagement() {
+        Room* current = head;
+        while (current) {
+            Room* temp = current;
+            current = current->next;
+            delete temp;
+        }
+    }
+
+    void addRoomToList(Room* room) {
+        if (!head) {
+            head = tail = room;
+        } else {
+            tail->next = room;
+            room->prev = tail;
+            tail = room;
+        }
+    }
+
+    void addBookingRequest(int type, const string& customerName, string phoneno, string cnic, int nights, int floor, bool highPriority) {
+        BookingRequest request(type, customerName, phoneno, cnic, nights, floor, highPriority);
+        if (highPriority)
+            priorityQueue.enqueue(request);
+        else
+            regularQueue.enqueue(request);
+    }
+
+    void processRequests() {
+        while (!priorityQueue.isEmpty() || !regularQueue.isEmpty()) {
+            BookingRequest request = !priorityQueue.isEmpty() ? priorityQueue.dequeue() : regularQueue.dequeue();
+            bool booked = false;
+            Room* current = head;
+
+            while (current) {
+                if (current->type == request.type &&
+                    current->status == READY &&
+                    current->floor == request.floor) {
+
+                    current->status = BOOKED;
+                    current->customerName = request.customerName;
+                    current->phoneno = request.phoneno;
+                    current->cnic = request.cnic;
+                    current->nights = request.nights;
+                    bookingHistory.push(current);
+
+                    cout << "Booking Confirmed: " << current->customerName
+                         << " in Room ID " << current->id
+                         << " on Floor " << current->floor << endl;
+
+                    booked = true;
+                    break;
+                }
+                current = current->next;
+            }
+
+            if (!booked) {
+                cout << "No available rooms of type "
+                     << (request.type == SINGLE ? "SINGLE" : request.type == DOUBLE ? "DOUBLE" : "SUITE")
+                     << " on floor " << request.floor << endl;
+            }
+        }
+    }
+
+    void cancelBooking() {
+        if (bookingHistory.isEmpty()) {
+            cout << "No bookings to cancel!" << endl;
+            return;
+        }
+
+        int cancelId;
+        cout << "Enter Room ID to cancel booking: ";
+        cin >> cancelId;
+
+        BookingStack temp;
+        bool found = false;
+
+        while (!bookingHistory.isEmpty()) {
+            Room* room = bookingHistory.pop();
+
+            if (room->id == cancelId) {
+                room->status = READY;
+                room->customerName = "";
+                room->phoneno = "";
+                room->cnic = "";
+                room->nights = 0;
+
+                cout << "Booking Canceled for Room ID " << room->id << endl;
+                found = true;
+                break;
+            } else {
+                temp.push(room);
+            }
+        }
+
+        while (!temp.isEmpty()) {
+            bookingHistory.push(temp.pop());
+        }
+
+        if (!found) {
+            cout << "No booking found for Room ID " << cancelId << endl;
+        }
+    }
+
+    void displayBookingHistory() {
+        if (bookingHistory.isEmpty()) {
+            cout << "No bookings in history.\n";
+            return;
+        }
+
+        BookingStack temp = bookingHistory.clone();
+        cout << "Booking History:\n";
+        while (!temp.isEmpty()) {
+            Room* room = temp.pop();
+
+            cout << "Room ID: " << room->id
+                 << ", Floor: " << room->floor
+                 << ", Type: " << (room->type == SINGLE ? "SINGLE" : room->type == DOUBLE ? "DOUBLE" : "SUITE")
+                 << ", Customer: " << room->customerName
+                 << ", Phone No.: " << room->phoneno
+                 << ", CNIC: " << room->cnic
+                 << ", Nights: " << room->nights << endl;
+        }
+    }
+
+    void displayAllRooms() {
+        cout << "All Rooms (In-Order Traversal):\n";
+        inOrderTraversal(root);
+    }
+};
+
+void displayMenu() {
+    cout << "1. Add Booking Request\n";
+    cout << "2. Confirm Booking Requests\n";
+    cout << "3. Cancel Most Recent Booking\n";
+    cout << "4. Display Booking History\n";
+    cout << "5. Display All Rooms\n";
+    cout << "6. Exit\n";
+    cout << "Enter your choice: ";
+}
+
+int main() {
+    cout << "\n\t *****************************************************************\n";
+    cout << "\t *      Welcome to Galaxy Hotel Management System Menu:          *\n";
+    cout << "\t *****************************************************************\n";
+
+    HotelManagement hotel(5, 10); // Example: 5 floors, 10 rooms per floor
+    int choice;
+
+    do {
+        displayMenu();
+        cin >> choice;
+        cout << endl;
+
+        switch (choice) {
+        case 1: {
+            int type, nights, floor, priority;
+            string phoneno, cnic;
+            string customerName;
+
+            cout << "Enter Room Type (0-SINGLE, 1-DOUBLE, 2-SUITE): ";
+            cin >> type;
+            cout << "Enter Customer Name: ";
+            cin.ignore();
+            getline(cin, customerName);
+            cout << "Enter Phone Number in digits: ";
+            getline(cin, phoneno);
+            cout << "Enter CNIC in digits : ";
+            getline(cin, cnic);
+            cout << "Enter Number of Nights for Stay : ";
+            cin >> nights;
+            cout << "Enter Floor Number (1-5): ";
+            cin >> floor;
+            if (floor > 5) {
+                cout << " \t ****** Tell me the floor within 5 ****** " << endl;
+                break;
+            }
+
+            cout << "For urgent booking ? (1-Yes, 0-No): ";
+            cin >> priority;
+            if (priority > 1) {
+                cout << " \t ****** Kindly press 1 or 0 ****** " << endl;
+                break;
+            }
+            cout << endl;
+            hotel.addBookingRequest(type, customerName, phoneno, cnic, nights, floor, priority);
+            cout << "\t **** If you want to confirm your booking, pressing 2 is compulsory **** " << endl;
+            cout << endl;
+            break;
+        }
+        case 2:
+            hotel.processRequests();
+            cout << endl;
+            break;
+        case 3:
+            hotel.cancelBooking();
+            cout << endl;
+            break;
+        case 4:
+            hotel.displayBookingHistory();
+            cout << endl;
+            break;
+        case 5:
+            hotel.displayAllRooms();
+            cout << endl;
+            break;
+        case 6:
+            cout << "Exiting the system.\n";
+            break;
+        default:
+            cout << "Invalid choice. Try again.\n";
+        }
+    } while (choice != 6);
+
+    return 0;
+}
