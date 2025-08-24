@@ -41,7 +41,7 @@ Implementation
    BookingRequest Class: Holds booking request information.
    TreeNode Class: Nodes for the binary search tree.
    HotelManagement Class: Manages all core functionality, including adding rooms, processing requests, and managing booking history.
-
+   
 2. User Interface :
      - Add a booking request.
      - Process all pending requests.
