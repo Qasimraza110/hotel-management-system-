@@ -1,5 +1,5 @@
 Hotel Management System
-Introduction
+Introduction   
 Efficient management of hotel bookings, cancellations, and room statuses is critical to the success of the hospitality industry. This project, the *Hotel Management System*, aims to provide an automated, user-friendly solution for managing hotel operations. The system will use robust data structures and algorithms to handle room allocations, booking priorities, cancellations, and room availability displays.
 
 Project Objectives
